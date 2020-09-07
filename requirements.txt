@@ -1,0 +1,5 @@
+trimesh
+transforms3d
+optparse
+numpy
+Cython

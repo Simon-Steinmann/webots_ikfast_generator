@@ -50,6 +50,7 @@ docker exec $CONTAINER_ID  /bin/sh -c "
     cd home/$MYROBOT_NAME;
     openrave-robot.py "$MYROBOT_NAME".dae --info links
     "
+echo "Specify the index of the base link and the last link of your chain. There have to be exactly 6 movable joints between the two. Fixed joints can be more."
 read -p  "BASE_LINK=" BASE_LINK
 read -p  "EEF_LINK=" EEF_LINK
 docker exec $CONTAINER_ID  /bin/bash -c "
@@ -83,4 +84,4 @@ case $conf in
     [Yy]* ) cd ikfastpy
         python setup.py build_ext --inplace;;
 esac
-cp ./ikfastpy/ikfastpy.cpython* ./export/$MYROBOT_NAME/
+cp ./ikfastpy.cpython* ../export/$MYROBOT_NAME/

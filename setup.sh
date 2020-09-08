@@ -37,6 +37,7 @@ else
 fi
 
 echo "Setting up Docker Container"
+sudo chmod 666 /var/run/docker.sock
 docker pull thorj/ikfast-generate-solver:firsttry
 docker run -it thorj/ikfast-generate-solver:firsttry /bin/bash
 exit

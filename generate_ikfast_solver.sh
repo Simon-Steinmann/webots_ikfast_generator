@@ -82,6 +82,6 @@ read conf
 case $conf in
     [Nn]* ) echo "Skipping ikfastpy wrapper  compile.";;
     [Yy]* ) cd ikfastpy
-        python setup.py build_ext --inplace;;
+        python3 setup.py build_ext --inplace;;
 esac
 cp ./ikfastpy.cpython* ../export/$MYROBOT_NAME/

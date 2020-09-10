@@ -6,6 +6,31 @@ import numpy as np
 
 import xml.dom.minidom
 
+HingeJointParametersDefaults = {
+  'anchor': '0 0 0',   # any vector
+  'axis': '1 0 0',   # unit axis
+  'suspensionSpringConstant': '0', # [0, inf)
+  'suspensionDampingConstant': '0',      # [0, inf)
+  'suspensionAxis': '1 0 0',  # unit axis
+}
+SolidDefaults = {
+    'translation': '0 0 0',
+    'rotation': '0 1 0 0'}
+
+def add_defaults(root):
+    for node in root.findall('.//'):
+        if node.tag == 'HingeJointParameters':
+            for k, v in HingeJointParametersDefaults.items():
+                if node.attrib.get(k) is None:
+                    node.set(k, v)
+        if node.tag in ['Solid', 'Transform', 'Group']:
+            for k, v in SolidDefaults.items():
+                if node.attrib.get(k) is None:
+                    node.set(k, v)
+    return root
+    
+
+    
 
 def pretty_print_xml_given_root(root, output_xml):
     """
@@ -46,6 +71,7 @@ def proto2xml(f, robotName):
             if eof > 10:
                 print('done parsing')
                 #tree.write('export/proto.xml') 
+                root = add_defaults(root)
                 pretty_print_xml_given_root(root, 'export/{}/{}.xml'.format(robotName, robotName))
                 return     
         if '{' in ln or 'children' in ln or 'device' in ln:          

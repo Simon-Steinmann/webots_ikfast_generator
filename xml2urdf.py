@@ -21,7 +21,6 @@ def getMesh(vertex_index, coord):
     mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
     return mesh
 
-
 class xml2urdf():
     def __init__(self, robotName, urlPrefix):
         self.robotName = robotName
@@ -32,7 +31,6 @@ class xml2urdf():
         self.tree = ET.parse('export/{}/{}.xml'.format(self.robotName, self.robotName))
         self.root = self.tree.getroot()
         self.parent_map = {c:p for p in self.root.iter( ) for c in p}
-        
 
     def convert(self):
         self.chain = self.root.findall('.//Solid')
@@ -68,7 +66,12 @@ class xml2urdf():
                             shapes.append(elem)  
         trimeshes = []
         for shape in shapes:
-            meshes = shape.findall('.//geometry[@type="IndexedFaceSet"]') 
+            meshes = shape.findall('.//geometry[@type="IndexedFaceSet"]')
+            cylinders = shape.findall('.//geometry[@type="Cylinder"]')
+            for c in cylinders:
+                r = c.attrib.get('radius')
+                h = c.attrib.get('height')
+                print(trimesh.primitives.Cylinder(radius=r, height=h).segment)
             if len(meshes) == 0:
                 continue            
             for mesh in meshes:
@@ -131,7 +134,6 @@ class xml2urdf():
                 ET.SubElement(collision, 'origin',  attrib={'xyz': origin})  
             geometry = ET.SubElement(collision, 'geometry')
             ET.SubElement(geometry, 'mesh',  attrib={'filename': '{}/meshes/collision/{}.stl'.format(self.urlPrefix, linkname)})
-            
 
 
     def createJoint(self, solid, parent):

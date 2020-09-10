@@ -50,38 +50,46 @@ docker exec $CONTAINER_ID  /bin/sh -c "
     cd home/$MYROBOT_NAME;
     openrave-robot.py "$MYROBOT_NAME".dae --info links
     "
-echo "Specify the index of the base link and the last link of your chain. There have to be exactly 6 movable joints between the two. Fixed joints can be more."
-read -p  "BASE_LINK=" BASE_LINK
-read -p  "EEF_LINK=" EEF_LINK
-docker exec $CONTAINER_ID  /bin/bash -c "
-    export BASE_LINK="$BASE_LINK";
-    export EEF_LINK="$EEF_LINK"
-    "
-#transform6d
-IKTYPE='transform6d' #"translationdirection5d"
+
 echo '-----------------------------'
 echo -e "Do you want to compile the ikFast solver now? This may take 10min - 2h!!! (y/n)"
 echo -e "If you already compiled the solver, press 'n' to skip this step."
 read conf
+
 case $conf in
     [Nn]* ) echo "Skipping ikFast solver compile.";;
-    [Yy]* ) IKFAST_OUTPUT_PATH="/home/$MYROBOT_NAME/ikfast61_"$MYROBOT_NAME".cpp"
+    [Yy]* ) 
+        echo "--------"
+        echo "Specify the index of the base link and the last link of your chain. There have to be exactly 6 movable joints between the two. Fixed joints can be more."
+        read -p  "BASE_LINK=" BASE_LINK
+        read -p  "EEF_LINK=" EEF_LINK
+        docker exec $CONTAINER_ID  /bin/bash -c "
+            export BASE_LINK="$BASE_LINK";
+            export EEF_LINK="$EEF_LINK"
+            "
+        IKFAST_OUTPUT_PATH="/home/$MYROBOT_NAME/ikfast61_"$MYROBOT_NAME".cpp"
+        #transform6d
+        IKTYPE='transform6d' #"translationdirection5d"
         docker exec $CONTAINER_ID  /bin/bash -c "python /opt/ros/indigo/lib/python2.7/dist-packages/openravepy/_openravepy_/ikfast.py --robot=/home/"$MYROBOT_NAME"/"$MYROBOT_NAME".dae --iktype="$IKTYPE" --baselink="$BASE_LINK" --eelink="$EEF_LINK" --savefile="$IKFAST_OUTPUT_PATH"";;
 esac
-echo "--------"
+
+
+
 docker cp $CONTAINER_ID:/home/$MYROBOT_NAME/ikfast61_"$MYROBOT_NAME".cpp ./export/$MYROBOT_NAME/
 docker cp $CONTAINER_ID:/home/$MYROBOT_NAME/ikfast61_"$MYROBOT_NAME".cpp ./ikfastpy/
-cp ./ikfastpy/ikfast61.cpp ./ikfastpy/ikfast61_backup.cpp 
-rm ./ikfastpy/ikfast61.cpp 
-rm ./ikfastpy/ikfastpy.cpython-37m-x86_64-linux-gnu.so
-cp ./ikfastpy/ikfast61_"$MYROBOT_NAME".cpp ./ikfastpy/ikfast61.cpp
 echo '-----------------------------'
 echo -e "Do you want to compile the ikfastpy wrapper for the converted solver? (y/n)"
 echo -e "This only takes up to 1min, press 'n' to skip this step."
 read conf
 case $conf in
     [Nn]* ) echo "Skipping ikfastpy wrapper  compile.";;
-    [Yy]* ) cd ikfastpy
-        python setup.py build_ext --inplace;;
+    [Yy]* ) 
+        cp ./ikfastpy/ikfast61.cpp ./ikfastpy/ikfast61_backup.cpp 
+        rm ./ikfastpy/ikfast61.cpp 
+        rm ./ikfastpy/ikfastpy.cpython-37m-x86_64-linux-gnu.so
+        cp ./ikfastpy/ikfast61_"$MYROBOT_NAME".cpp ./ikfastpy/ikfast61.cpp        
+        cd ikfastpy
+        python setup.py build_ext --inplace
+        cp ./ikfastpy.cpython* ../export/$MYROBOT_NAME/;;
 esac
-cp ./ikfastpy.cpython* ../export/$MYROBOT_NAME/
+

@@ -18,7 +18,9 @@ SolidDefaults = {
     'rotation': '0 1 0 0'}
 
 def add_defaults(root):
+    i = 0
     for node in root.findall('.//'):
+        i += 1
         if node.tag == 'HingeJointParameters':
             for k, v in HingeJointParametersDefaults.items():
                 if node.attrib.get(k) is None:
@@ -27,6 +29,11 @@ def add_defaults(root):
             for k, v in SolidDefaults.items():
                 if node.attrib.get(k) is None:
                     node.set(k, v)
+            name = node.attrib.get('name')
+            if name is None:
+                name = 'link'
+            name = name.replace('(', '_').replace(')', '_')  + '_' + str(i)
+            node.set('name', name)
     return root
     
 
@@ -52,11 +59,34 @@ def pretty_print_xml_given_file(input_xml, output_xml):
 
 def proto2xml(f, robotName):
     level = 0
-    ln = f.readline().split()
-    while not '{' in ln:
+    #ln = f.readline().split()
+    while True:
         ln = f.readline().split()
-    tree = ET.ElementTree(ET.Element(ln[0]))
-    root = tree.getroot()
+        if '{' in ln:
+            tree = ET.ElementTree(ET.Element(ln[0]))
+            root = tree.getroot()
+            break
+        if '[' in ln:
+            tree = ET.ElementTree(ET.Element(ln[1]))
+            root = tree.getroot()
+            root.set('type', ln[0])
+            line = f.readline()
+            ln = line.split()
+            while not ']' in ln:                
+                #print(ln[2], ' '.join(ln[3:]).split('#')[0])
+                field = ET.SubElement(root, ln[0], attrib={'type': ln[1]})
+                fdata = ' '.join(ln[3:]).split('#')[0].split()
+                field.set(ln[2], ' '.join(fdata))
+                field.set('comment', line.split('#')[1])
+                print(line.split('#')[1])
+                line = f.readline()
+                ln = line.split()
+            ln = f.readline().split()
+            break
+            
+
+
+    #print(xml.dom.minidom.parseString(ET.tostring(root)).toprettyxml())
     elemList = [root]
     hierarchy = [0]
     indent = '  '
@@ -70,7 +100,7 @@ def proto2xml(f, robotName):
             eof += 1
             if eof > 10:
                 print('done parsing')
-                #tree.write('export/proto.xml') 
+                tree.write('export/proto.xml') 
                 root = add_defaults(root)
                 pretty_print_xml_given_root(root, 'export/{}/{}.xml'.format(robotName, robotName))
                 return     
@@ -88,12 +118,16 @@ def proto2xml(f, robotName):
                 if i == 0:
                     elemList[-1].tag = ln[-2]
                 else:
-                    elemList[-1].set('type', ln[-2])           
+                    if elemList[-1].attrib.get('type') != 'endPoint':
+                        elemList[-1].set('type', ln[-2])           
                 elemList[-1].set('DEF', ln[i + 1])
             if 'USE' in ln:
                 elemList[-1].set('type', ln[-2])           
                 elemList[-1].set('USE', ln[ln.index('USE') + 1])
-            hierarchy.append(len(elemList) - 1)
+            if 'IS' in ln:
+                elemList[-1].set('IS', ln[ln.index('IS') + 1])
+            else:
+                hierarchy.append(len(elemList) - 1)
         elif '}' in ln or ']' in ln:
             del hierarchy[-1]
         elif '[' in ln:
@@ -103,14 +137,20 @@ def proto2xml(f, robotName):
             while not ']' in ln:                    
                 data += ' ' + ' '.join(ln)
                 ln = f.readline().split()
-            elemList[-1].set(attribute, data)
+            elemList[-1].set(attribute, data[:10])
+        elif '%{' in ln:
+            print(' '.join(ln))
+            elemList.append(ET.SubElement(elemList[hierarchy[-1]], 'script'))
+            print(elemList[-1], elemList[hierarchy[-1]])
+            elemList[-1].set('code', ' '.join(ln))
         elif len(ln) > 1:
             if ln[0] == 'USE':
                 node = root.findall('.//*[@DEF="' + ln[1] + '"]')[0]          
                 elemList.append(ET.SubElement(elemList[hierarchy[-1]], node.tag))
                 elemList[-1].set('USE', ln[1])
-            else:    
-                elemList[-1].set(ln[0],  ' '.join(ln[1:]))  
+            else:
+                print(elemList[-1], elemList[hierarchy[-1]])
+                elemList[hierarchy[-1]].set(ln[0],  ' '.join(ln[1:]))  
             
                     
        

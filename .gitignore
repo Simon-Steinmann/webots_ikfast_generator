@@ -1,3 +1,5 @@
 /ikfastpy/build/*
 ikfastpy/ikfastpy.so
 *.so
+/import/*
+/export/*
